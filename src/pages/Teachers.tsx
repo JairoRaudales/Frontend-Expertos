@@ -1,7 +1,12 @@
 // Página de Profesores
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTeachers, useDeleteTeacher, useChangeTeacherStatus, useDepartments } from '@/hooks';
+import {
+  useTeachers,
+  useDeleteTeacher,
+  useChangeTeacherStatus,
+  useDepartments,
+} from '@/hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -74,6 +79,10 @@ export function Teachers() {
   const deleteMutation = useDeleteTeacher();
   const statusMutation = useChangeTeacherStatus();
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, departmentFilter]);
+
   const handleDelete = async () => {
     if (teacherToDelete) {
       await deleteMutation.mutateAsync(teacherToDelete.id);
@@ -88,37 +97,43 @@ export function Teachers() {
   };
 
   const getStatusBadge = (status: Teacher['status']) => {
-    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
+    const variants: Record<
+      string,
+      {
+        variant: 'default' | 'secondary' | 'destructive' | 'outline';
+        label: string;
+      }
+    > = {
       active: { variant: 'default', label: 'Activo' },
       inactive: { variant: 'secondary', label: 'Inactivo' },
       on_leave: { variant: 'outline', label: 'En Licencia' },
     };
+
     const config = variants[status] || variants.inactive;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Profesores</h1>
           <p className="text-muted-foreground">
             Gestiona los profesores de la institución
           </p>
         </div>
+
         <Button onClick={() => navigate('/teachers/new')}>
           <Plus className="mr-2 h-4 w-4" />
           Nuevo Profesor
         </Button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-blue-100">
+              <div className="rounded-full bg-blue-100 p-3">
                 <GraduationCap className="h-5 w-5 text-blue-600" />
               </div>
               <div>
@@ -128,16 +143,17 @@ export function Teachers() {
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-green-100">
+              <div className="rounded-full bg-green-100 p-3">
                 <UserCheck className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Activos</p>
                 <p className="text-2xl font-bold">
-                  {data?.data.filter((t) => t.status === 'active').length || 0}
+                  {data?.data?.filter((t) => t.status === 'active').length || 0}
                 </p>
               </div>
             </div>
@@ -145,12 +161,11 @@ export function Teachers() {
         </Card>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="text-muted-foreground absolute left-2.5 top-2.5 h-4 w-4" />
               <Input
                 placeholder="Buscar profesores..."
                 className="pl-8"
@@ -158,27 +173,38 @@ export function Teachers() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+
             <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter || 'all'}
+                onValueChange={(value) =>
+                  setStatusFilter(value === 'all' ? '' : value)
+                }
+              >
                 <SelectTrigger className="w-[140px]">
                   <Filter className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="active">Activo</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                   <SelectItem value="on_leave">En Licencia</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <Select
+                value={departmentFilter || 'all'}
+                onValueChange={(value) =>
+                  setDepartmentFilter(value === 'all' ? '' : value)
+                }
+              >
                 <SelectTrigger className="w-[160px]">
                   <Briefcase className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Departamento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   {departments?.map((dept) => (
                     <SelectItem key={dept} value={dept}>
                       {dept}
@@ -191,11 +217,11 @@ export function Teachers() {
         </CardContent>
       </Card>
 
-      {/* Teachers Table */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Profesores</CardTitle>
         </CardHeader>
+
         <CardContent>
           {isLoading ? (
             <TeachersTableSkeleton />
@@ -212,48 +238,54 @@ export function Teachers() {
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
+
                   <TableBody>
-                    {data?.data.length === 0 ? (
+                    {!data?.data || data.data.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8">
+                        <TableCell colSpan={5} className="py-8 text-center">
                           No se encontraron profesores
                         </TableCell>
                       </TableRow>
                     ) : (
-                      data?.data.map((teacher) => (
+                      data.data.map((teacher) => (
                         <TableRow key={teacher.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
                                 <AvatarImage src={teacher.avatar} />
                                 <AvatarFallback>
-                                  {teacher.firstName[0]}
-                                  {teacher.lastName[0]}
+                                  {teacher.firstName?.[0] ?? ''}
+                                  {teacher.lastName?.[0] ?? ''}
                                 </AvatarFallback>
                               </Avatar>
+
                               <div>
                                 <p className="font-medium">
                                   {teacher.firstName} {teacher.lastName}
                                 </p>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-muted-foreground text-sm">
                                   {teacher.email}
                                 </p>
                               </div>
                             </div>
                           </TableCell>
+
                           <TableCell>
                             <Badge variant="outline">{teacher.department}</Badge>
                           </TableCell>
+
                           <TableCell>
                             <p className="text-sm">
                               {teacher.specialization || 'N/A'}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {teacher.subjects?.slice(0, 2).join(', ')}
+                            <p className="text-muted-foreground text-xs">
+                              {teacher.subjects?.slice(0, 2).join(', ') || 'N/A'}
                               {teacher.subjects && teacher.subjects.length > 2 && '...'}
                             </p>
                           </TableCell>
+
                           <TableCell>{getStatusBadge(teacher.status)}</TableCell>
+
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -261,22 +293,29 @@ export function Teachers() {
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
+
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+
                                 <DropdownMenuItem
                                   onClick={() => navigate(`/teachers/${teacher.id}`)}
                                 >
                                   <Eye className="mr-2 h-4 w-4" />
                                   Ver detalles
                                 </DropdownMenuItem>
+
                                 <DropdownMenuItem
-                                  onClick={() => navigate(`/teachers/${teacher.id}/edit`)}
+                                  onClick={() =>
+                                    navigate(`/teachers/${teacher.id}/edit`)
+                                  }
                                 >
                                   <Edit className="mr-2 h-4 w-4" />
                                   Editar
                                 </DropdownMenuItem>
+
                                 <DropdownMenuSeparator />
+
                                 {teacher.status === 'active' ? (
                                   <DropdownMenuItem
                                     onClick={() =>
@@ -296,6 +335,7 @@ export function Teachers() {
                                     Activar
                                   </DropdownMenuItem>
                                 )}
+
                                 <DropdownMenuItem
                                   className="text-destructive"
                                   onClick={() => setTeacherToDelete(teacher)}
@@ -313,9 +353,8 @@ export function Teachers() {
                 </Table>
               </div>
 
-              {/* Pagination */}
               {data && data.totalPages > 1 && (
-                <div className="flex justify-center mt-4">
+                <div className="mt-4 flex justify-center">
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -325,13 +364,17 @@ export function Teachers() {
                     >
                       Anterior
                     </Button>
+
                     <span className="flex items-center px-4 text-sm">
                       Página {page} de {data.totalPages}
                     </span>
+
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
+                      onClick={() =>
+                        setPage((p) => Math.min(data.totalPages, p + 1))
+                      }
                       disabled={page === data.totalPages}
                     >
                       Siguiente
@@ -344,8 +387,10 @@ export function Teachers() {
         </CardContent>
       </Card>
 
-      {/* Delete Dialog */}
-      <Dialog open={!!teacherToDelete} onOpenChange={() => setTeacherToDelete(null)}>
+      <Dialog
+        open={!!teacherToDelete}
+        onOpenChange={() => setTeacherToDelete(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Eliminación</DialogTitle>
@@ -357,10 +402,12 @@ export function Teachers() {
               ? Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setTeacherToDelete(null)}>
               Cancelar
             </Button>
+
             <Button
               variant="destructive"
               onClick={handleDelete}
@@ -379,7 +426,7 @@ function TeachersTableSkeleton() {
   return (
     <div className="space-y-4">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+        <div key={i} className="flex items-center gap-4 rounded-lg border p-4">
           <Skeleton className="h-10 w-10 rounded-full" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-48" />

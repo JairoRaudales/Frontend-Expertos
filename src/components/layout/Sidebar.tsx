@@ -55,7 +55,7 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Lista de Profesores', href: '/teachers' },
       { title: 'Nuevo Profesor', href: '/teachers/new' },
-      { title: 'Asignaciones', href: '/teachers/assignments' },
+      { title: 'Asignaciones', href: '/assignments' },
     ],
   },
   {
@@ -64,7 +64,7 @@ const navItems: NavItem[] = [
     icon: BookOpen,
     children: [
       { title: 'Lista de Cursos', href: '/courses' },
-      { title: 'Nuevo Curso', href: '/courses/new' },
+      { title: 'Nuevo Curso', href: '/CourseFormPage' },
       { title: 'Horarios', href: '/courses/schedules' },
     ],
   },

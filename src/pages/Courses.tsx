@@ -1,7 +1,12 @@
 // Página de Cursos
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCourses, useDeleteCourse, useChangeCourseStatus, useTeachers } from '@/hooks';
+import {
+  useCourses,
+  useDeleteCourse,
+  useChangeCourseStatus,
+  useTeachers,
+} from '@/hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -73,6 +78,10 @@ export function Courses() {
   const deleteMutation = useDeleteCourse();
   const statusMutation = useChangeCourseStatus();
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, departmentFilter]);
+
   const handleDelete = async () => {
     if (courseToDelete) {
       await deleteMutation.mutateAsync(courseToDelete.id);
@@ -87,38 +96,46 @@ export function Courses() {
   };
 
   const getStatusBadge = (status: Course['status']) => {
-    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
+    const variants: Record<
+      string,
+      {
+        variant: 'default' | 'secondary' | 'destructive' | 'outline';
+        label: string;
+      }
+    > = {
       active: { variant: 'default', label: 'Activo' },
       inactive: { variant: 'secondary', label: 'Inactivo' },
     };
+
     const config = variants[status] || variants.inactive;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const departments = [...new Set(teachers?.data.map((t) => t.department) || [])];
+  const departments = [
+    ...new Set(teachers?.data?.map((t) => t.department).filter(Boolean) || []),
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Cursos</h1>
           <p className="text-muted-foreground">
             Gestiona los cursos de la institución
           </p>
         </div>
+
         <Button onClick={() => navigate('/courses/new')}>
           <Plus className="mr-2 h-4 w-4" />
           Nuevo Curso
         </Button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-blue-100">
+              <div className="rounded-full bg-blue-100 p-3">
                 <BookOpen className="h-5 w-5 text-blue-600" />
               </div>
               <div>
@@ -128,16 +145,17 @@ export function Courses() {
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-green-100">
+              <div className="rounded-full bg-green-100 p-3">
                 <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Activos</p>
                 <p className="text-2xl font-bold">
-                  {data?.data.filter((c) => c.status === 'active').length || 0}
+                  {data?.data?.filter((c) => c.status === 'active').length || 0}
                 </p>
               </div>
             </div>
@@ -145,12 +163,11 @@ export function Courses() {
         </Card>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="text-muted-foreground absolute left-2.5 top-2.5 h-4 w-4" />
               <Input
                 placeholder="Buscar cursos..."
                 className="pl-8"
@@ -158,26 +175,37 @@ export function Courses() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+
             <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter || 'all'}
+                onValueChange={(value) =>
+                  setStatusFilter(value === 'all' ? '' : value)
+                }
+              >
                 <SelectTrigger className="w-[140px]">
                   <Filter className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="active">Activo</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <Select
+                value={departmentFilter || 'all'}
+                onValueChange={(value) =>
+                  setDepartmentFilter(value === 'all' ? '' : value)
+                }
+              >
                 <SelectTrigger className="w-[160px]">
                   <BookOpen className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Departamento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept} value={dept}>
                       {dept}
@@ -190,11 +218,11 @@ export function Courses() {
         </CardContent>
       </Card>
 
-      {/* Courses Table */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Cursos</CardTitle>
         </CardHeader>
+
         <CardContent>
           {isLoading ? (
             <CoursesTableSkeleton />
@@ -212,34 +240,38 @@ export function Courses() {
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
+
                   <TableBody>
-                    {data?.data.length === 0 ? (
+                    {!data?.data || data.data.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
+                        <TableCell colSpan={6} className="py-8 text-center">
                           No se encontraron cursos
                         </TableCell>
                       </TableRow>
                     ) : (
-                      data?.data.map((course) => (
+                      data.data.map((course) => (
                         <TableRow key={course.id}>
                           <TableCell>
                             <div>
                               <p className="font-medium">{course.name}</p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-muted-foreground text-sm">
                                 {course.code} • {course.department}
                               </p>
                             </div>
                           </TableCell>
+
                           <TableCell>
                             <p className="text-sm">
                               {course.teacherName || 'Sin asignar'}
                             </p>
                           </TableCell>
+
                           <TableCell>
                             <Badge variant="outline">
                               {course.grade}° - {course.section}
                             </Badge>
                           </TableCell>
+
                           <TableCell>
                             <div className="space-y-1">
                               <div className="flex items-center justify-between text-sm">
@@ -250,13 +282,19 @@ export function Courses() {
                               </div>
                               <Progress
                                 value={
-                                  ((course.enrolledStudents || 0) / course.maxStudents) * 100
+                                  course.maxStudents > 0
+                                    ? ((course.enrolledStudents || 0) /
+                                        course.maxStudents) *
+                                      100
+                                    : 0
                                 }
                                 className="h-2"
                               />
                             </div>
                           </TableCell>
+
                           <TableCell>{getStatusBadge(course.status)}</TableCell>
+
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -264,22 +302,29 @@ export function Courses() {
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
+
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+
                                 <DropdownMenuItem
                                   onClick={() => navigate(`/courses/${course.id}`)}
                                 >
                                   <Eye className="mr-2 h-4 w-4" />
                                   Ver detalles
                                 </DropdownMenuItem>
+
                                 <DropdownMenuItem
-                                  onClick={() => navigate(`/courses/${course.id}/edit`)}
+                                  onClick={() =>
+                                    navigate(`/courses/${course.id}/edit`)
+                                  }
                                 >
                                   <Edit className="mr-2 h-4 w-4" />
                                   Editar
                                 </DropdownMenuItem>
+
                                 <DropdownMenuSeparator />
+
                                 {course.status === 'active' ? (
                                   <DropdownMenuItem
                                     onClick={() =>
@@ -299,6 +344,7 @@ export function Courses() {
                                     Activar
                                   </DropdownMenuItem>
                                 )}
+
                                 <DropdownMenuItem
                                   className="text-destructive"
                                   onClick={() => setCourseToDelete(course)}
@@ -316,9 +362,8 @@ export function Courses() {
                 </Table>
               </div>
 
-              {/* Pagination */}
               {data && data.totalPages > 1 && (
-                <div className="flex justify-center mt-4">
+                <div className="mt-4 flex justify-center">
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -328,13 +373,17 @@ export function Courses() {
                     >
                       Anterior
                     </Button>
+
                     <span className="flex items-center px-4 text-sm">
                       Página {page} de {data.totalPages}
                     </span>
+
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
+                      onClick={() =>
+                        setPage((p) => Math.min(data.totalPages, p + 1))
+                      }
                       disabled={page === data.totalPages}
                     >
                       Siguiente
@@ -347,20 +396,25 @@ export function Courses() {
         </CardContent>
       </Card>
 
-      {/* Delete Dialog */}
-      <Dialog open={!!courseToDelete} onOpenChange={() => setCourseToDelete(null)}>
+      <Dialog
+        open={!!courseToDelete}
+        onOpenChange={() => setCourseToDelete(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Eliminación</DialogTitle>
             <DialogDescription>
               ¿Estás seguro de que deseas eliminar el curso{' '}
-              <strong>{courseToDelete?.name}</strong>? Esta acción no se puede deshacer.
+              <strong>{courseToDelete?.name}</strong>? Esta acción no se puede
+              deshacer.
             </DialogDescription>
           </DialogHeader>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setCourseToDelete(null)}>
               Cancelar
             </Button>
+
             <Button
               variant="destructive"
               onClick={handleDelete}
@@ -379,7 +433,7 @@ function CoursesTableSkeleton() {
   return (
     <div className="space-y-4">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+        <div key={i} className="flex items-center gap-4 rounded-lg border p-4">
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-48" />
             <Skeleton className="h-3 w-32" />

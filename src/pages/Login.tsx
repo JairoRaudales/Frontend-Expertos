@@ -22,7 +22,11 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await loginMutation.mutateAsync({ email, password });
+      //await loginMutation.mutateAsync({ email, password });
+      await loginMutation.mutateAsync({
+        username: email, // o cambia el input si quieres username
+        password,
+});
       navigate('/');
     } catch (error) {
       // Error handled by mutation
