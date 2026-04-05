@@ -1,35 +1,94 @@
-// Página de Login
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useLogin } from '@/hooks';
+
+import React, { useState, useEffect } from 'react';
+
+//import { useNavigate } from 'react-router-dom';
+import { useLogin } from '@/hooks/useLogin';
+import type { LoginMethod } from '@/types/index';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { School, Loader2, Eye, EyeOff } from 'lucide-react';
+import { School, Loader2, Eye, EyeOff, User, Mail } from 'lucide-react';
+import axios from 'axios';
 
 export function Login() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@escuela.com');
-  const [password, setPassword] = useState('admin123');
+
+  //const navigate = useNavigate();
+  const [identifier, setIdentifier] = useState('admin');
+  const [password, setPassword] = useState('admin');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isManualSelection, setIsManualSelection] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>(() => {
+    const saved = localStorage.getItem('loginMethod') as LoginMethod;
+    return saved || 'username';
+  });
+
+
+
+  // Recordar último método usado - inicializar desde localStorage
+  useEffect(() => {
+    const savedMethod = localStorage.getItem('loginMethod') as LoginMethod;
+    if (savedMethod) {
+      // Usar inicialización lazy en el estado en lugar de setState aquí
+      // Esto se maneja en el useState inicial
+    }
+  }, []);
+
+
+  useEffect(() => {
+    // Solo auto-detectar si el usuario NO ha seleccionado manualmente
+    if (!isManualSelection && identifier.includes('@') && loginMethod !== 'email') {
+      const timeoutId = setTimeout(() => {
+        setLoginMethod('email');
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [identifier, loginMethod, isManualSelection]);
+
 
   const loginMutation = useLogin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+    setIsManualSelection(false); // Resetear para permitir auto-detección en próximo intento
+
     try {
-      //await loginMutation.mutateAsync({ email, password });
-      await loginMutation.mutateAsync({
-        username: email, // o cambia el input si quieres username
-        password,
-});
-      navigate('/');
-    } catch (error) {
-      // Error handled by mutation
+      const credentials = {
+        identifier: identifier,
+        password: password,
+        method: loginMethod,
+      };
+
+      localStorage.setItem('loginMethod', loginMethod);
+      
+      const result = await loginMutation.mutateAsync(credentials);
+
+      if (!result.exitoso) {
+        setErrorMessage(result.mensaje || 'Error en la autenticación');
+      }
+      
+      setIsSuccess(true);
+
+    } catch (error: unknown) {
+      let message = 'Ocurrió un error inesperado al iniciar sesión.';
+
+      if (axios.isAxiosError(error)) {
+        // Si es un error de Axios, podemos acceder a la respuesta de tu API .NET
+        message = error.response?.data?.mensaje || error.message;
+      } else if (error instanceof Error) {
+        // Si es un error genérico de JavaScript
+        message = error.message;
+      }
+
+      setErrorMessage(message);
+      console.error('Error en el login:', error);
     }
   };
 
@@ -53,91 +112,134 @@ export function Login() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">Iniciar Sesión</CardTitle>
             <CardDescription className="text-center">
-              Ingrese sus credenciales para acceder al sistema
+              Ingrese su correo o usuario para acceder al sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {loginMutation.isError && (
-                <Alert variant="destructive">
-                  <AlertDescription>
-                    Credenciales inválidas. Por favor, intente nuevamente.
-                  </AlertDescription>
-                </Alert>
-              )}
+            <div className={`transition-all duration-500 ${isSuccess ? 'opacity-0 -translate-y-8' : 'opacity-100'}`}>
+              <form
+                onSubmit={handleSubmit}
+                className={`space-y-4 transition-opacity duration-300 ${loginMutation.isPending ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}
+              >
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@escuela.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loginMutation.isPending}
-                />
-              </div>
+                {errorMessage && (
+                  <Alert
+                    variant="destructive"
+                    className="animate-in slide-in-from-top-2 duration-300 border-red-500"
+                  >
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                  </Alert>
+                )}
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loginMutation.isPending}
-                  />
+
+                <div className="flex gap-2 mb-2">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => setShowPassword(!showPassword)}
+                    variant={loginMethod === 'username' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1 gap-2"
+                    onClick={() => {
+                      setLoginMethod('username');
+                      setIsManualSelection(true);
+                    }}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
+                    <User className="h-4 w-4" />
+                    Usuario
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={loginMethod === 'email' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1 gap-2"
+                    onClick={() => {
+                      setLoginMethod('email');
+                      setIsManualSelection(true);
+                    }}
+                  >
+                    <Mail className="h-4 w-4" />
+                    Correo
                   </Button>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  />
-                  <Label htmlFor="remember" className="text-sm font-normal">
-                    Recordarme
+                <div className="space-y-2">
+                  <Label htmlFor="identifier">
+                    {loginMethod === 'email' ? 'Correo Electrónico' : 'Nombre de Usuario'}
                   </Label>
+                  <Input
+                    id="identifier"
+                    type={loginMethod === 'email' ? 'email' : 'text'}
+                    placeholder={loginMethod === 'email' ? 'admin@escuela.com' : 'admin'}
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    required
+                    disabled={loginMutation.isPending}
+                    className={errorMessage ? 'border-red-500 animate-pulse' : ''}
+                  />
+                  {identifier.includes('@') && loginMethod === 'username' && (
+                    <p className="text-xs text-blue-500">Detectado como email, cambiando modo...</p>
+                  )}
                 </div>
-                <Button variant="link" className="text-sm px-0" type="button">
-                  ¿Olvidó su contraseña?
-                </Button>
-              </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loginMutation.isPending}
-              >
-                {loginMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Iniciando sesión...
-                  </>
-                ) : (
-                  'Iniciar Sesión'
-                )}
-              </Button>
-            </form>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Contraseña</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={loginMutation.isPending}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="remember"
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                    />
+                    <Label htmlFor="remember" className="text-sm font-normal">
+                      Recordarme
+                    </Label>
+                  </div>
+                  <Button variant="link" className="text-sm px-0" type="button">
+                    ¿Olvidó su contraseña?
+                  </Button>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Iniciando sesión...
+                    </>
+                  ) : (
+                    'Iniciar Sesión'
+                  )}
+                </Button>
+              </form>
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <div className="relative w-full">
@@ -151,13 +253,12 @@ export function Login() {
               </div>
             </div>
             <div className="text-center text-sm text-muted-foreground">
-              <p>Email: admin@escuela.com</p>
-              <p>Contraseña: admin123</p>
+              <p>Usuario: admin</p>
+              <p>Contraseña: admin</p>
             </div>
           </CardFooter>
         </Card>
 
-        {/* Footer */}
         <p className="text-center text-sm text-muted-foreground mt-8">
           © 2024 EduAdmin. Todos los derechos reservados.
         </p>
@@ -165,3 +266,4 @@ export function Login() {
     </div>
   );
 }
+

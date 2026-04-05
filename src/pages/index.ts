@@ -9,3 +9,5 @@ export { Courses } from './Courses';
 export { CourseFormPage } from './CourseFormPage';
 export { Grades } from './Grades';
 export { Attendance } from './Attendance';
+export { Schedules } from './Schedules';
+export { ScheduleFormPage } from './ScheduleFormPage';

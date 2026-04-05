@@ -9,6 +9,10 @@
     }
   ],
   "compilerOptions": {
+     
+    "module": "ESNext", // CAMBIO: Debe ser 'ESNext' o 'es2015' o posterior
+    
+    "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

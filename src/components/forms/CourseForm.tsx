@@ -50,7 +50,12 @@ const departments = [
 const grades = ['9', '10', '11', '12'];
 const sections = ['A', 'B', 'C', 'D'];
 
-export function CourseForm({ initialData, onSubmit, isLoading, teachers = [] }: CourseFormProps) {
+export function CourseForm({
+  initialData,
+  onSubmit,
+  isLoading,
+  teachers = [],
+}: CourseFormProps) {
   const {
     register,
     handleSubmit,
@@ -76,13 +81,12 @@ export function CourseForm({ initialData, onSubmit, isLoading, teachers = [] }: 
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Información Básica */}
       <Card>
         <CardHeader>
           <CardTitle>Información Básica</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre del Curso *</Label>
               <Input
@@ -120,17 +124,16 @@ export function CourseForm({ initialData, onSubmit, isLoading, teachers = [] }: 
         </CardContent>
       </Card>
 
-      {/* Información Académica */}
       <Card>
         <CardHeader>
           <CardTitle>Información Académica</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="department">Departamento *</Label>
               <Select
-                value={watch('department')}
+                value={watch('department') || undefined}
                 onValueChange={(value) => setValue('department', value)}
               >
                 <SelectTrigger>
@@ -178,24 +181,25 @@ export function CourseForm({ initialData, onSubmit, isLoading, teachers = [] }: 
         </CardContent>
       </Card>
 
-      {/* Asignación */}
       <Card>
         <CardHeader>
           <CardTitle>Asignación</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="teacherId">Profesor Asignado</Label>
               <Select
-                value={watch('teacherId')}
-                onValueChange={(value) => setValue('teacherId', value)}
+                value={watch('teacherId') || 'none'}
+                onValueChange={(value) =>
+                  setValue('teacherId', value === 'none' ? '' : value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione el profesor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin asignar</SelectItem>
+                  <SelectItem value="none">Sin asignar</SelectItem>
                   {teachers.map((teacher) => (
                     <SelectItem key={teacher.id} value={teacher.id}>
                       {teacher.name}
@@ -208,7 +212,7 @@ export function CourseForm({ initialData, onSubmit, isLoading, teachers = [] }: 
             <div className="space-y-2">
               <Label htmlFor="grade">Grado *</Label>
               <Select
-                value={watch('grade')}
+                value={watch('grade') || undefined}
                 onValueChange={(value) => setValue('grade', value)}
               >
                 <SelectTrigger>
@@ -230,7 +234,7 @@ export function CourseForm({ initialData, onSubmit, isLoading, teachers = [] }: 
             <div className="space-y-2">
               <Label htmlFor="section">Sección *</Label>
               <Select
-                value={watch('section')}
+                value={watch('section') || undefined}
                 onValueChange={(value) => setValue('section', value)}
               >
                 <SelectTrigger>
@@ -265,7 +269,6 @@ export function CourseForm({ initialData, onSubmit, isLoading, teachers = [] }: 
         </CardContent>
       </Card>
 
-      {/* Botones */}
       <div className="flex justify-end gap-4">
         <Button type="button" variant="outline" onClick={() => window.history.back()}>
           Cancelar

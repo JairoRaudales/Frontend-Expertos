@@ -2,22 +2,45 @@
 
 // Usuario y Autenticación
 export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'admin' | 'teacher' | 'staff';
-  avatar?: string;
-}
-
-export interface LoginCredentials {
-  username: string;
-  password: string;
+idUsuario : string | null;
+codigoUsuario : string | null;
+nombreUsuario : string | null; 
+idTipoCliente : string | null; 
+ultimaConexion : string | null;
 }
 
 export interface AuthResponse {
   user: User;
   token: string;
 }
+
+
+///// usando en loging /////
+
+export interface LoginResponse {
+  exitoso: boolean;
+  mensaje: string;
+  token: string;
+  expiracion: string;
+  usuario: {
+    idUsuario: string;
+    codigoUsuario: string;
+    nombreUsuario: string;
+    idTipoCliente: string | null;
+    ultimaConexion: string;
+  };
+}
+
+export type LoginMethod = 'username' | 'email';
+
+export interface LoginCredentials {
+  identifier: string;
+  password: string;
+  method: LoginMethod;
+}
+
+
+
 
 // Estudiante
 export interface Student {
@@ -161,7 +184,7 @@ export interface RecentActivity {
 export interface ChartData {
   name: string;
   value: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Paginación y Filtros
@@ -269,3 +292,4 @@ export interface CourseFormData {
   section: string;
   maxStudents: number;
 }
+

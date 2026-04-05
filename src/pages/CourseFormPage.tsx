@@ -1,5 +1,4 @@
-// Página de Formulario de Curso (Crear/Editar)
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useCourse, useCreateCourse, useUpdateCourse, useTeachers } from '@/hooks';
 import { CourseForm } from '@/components/forms';
 import { Button } from '@/components/ui/button';
@@ -10,27 +9,38 @@ import type { CourseFormData } from '@/types';
 
 export function CourseFormPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
-  const isEditing = !!id;
 
-  const { data: course, isLoading } = useCourse(id || '');
+  // Solo será edición cuando la ruta tenga /edit
+  const isEditing = location.pathname.includes('/edit');
+
+  // Solo buscar curso cuando sea edición
+  const { data: course, isLoading } = useCourse(isEditing && id ? id : '');
   const { data: teachers } = useTeachers({ page: 1, limit: 100 });
+
   const createMutation = useCreateCourse();
   const updateMutation = useUpdateCourse();
 
   const handleSubmit = async (data: CourseFormData) => {
-    if (isEditing && id) {
-      await updateMutation.mutateAsync({ id, data });
-    } else {
-      await createMutation.mutateAsync(data);
+    try {
+      if (isEditing && id) {
+        await updateMutation.mutateAsync({ id, data });
+      } else {
+        await createMutation.mutateAsync(data);
+      }
+
+      navigate('/courses');
+    } catch (error) {
+      console.error('Error al guardar el curso:', error);
     }
-    navigate('/courses');
   };
 
-  const teachersList = teachers?.data.map((t) => ({
-    id: t.id,
-    name: `${t.firstName} ${t.lastName}`,
-  })) || [];
+  const teachersList =
+    teachers?.data?.map((t) => ({
+      id: t.id,
+      name: `${t.firstName} ${t.lastName}`,
+    })) || [];
 
   if (isEditing && isLoading) {
     return (
@@ -41,6 +51,7 @@ export function CourseFormPage() {
           </Button>
           <Skeleton className="h-8 w-48" />
         </div>
+
         <Card>
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -54,24 +65,24 @@ export function CourseFormPage() {
     );
   }
 
-  const initialData = course
-    ? {
-        name: course.name,
-        code: course.code,
-        description: course.description,
-        department: course.department,
-        credits: course.credits,
-        hoursPerWeek: course.hoursPerWeek,
-        teacherId: course.teacherId,
-        grade: course.grade,
-        section: course.section,
-        maxStudents: course.maxStudents,
-      }
-    : undefined;
+  const initialData =
+    isEditing && course
+      ? {
+          name: course.name,
+          code: course.code,
+          description: course.description,
+          department: course.department,
+          credits: course.credits,
+          hoursPerWeek: course.hoursPerWeek,
+          teacherId: course.teacherId,
+          grade: course.grade,
+          section: course.section,
+          maxStudents: course.maxStudents,
+        }
+      : undefined;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/courses')}>
           <ArrowLeft className="h-5 w-5" />
@@ -88,7 +99,6 @@ export function CourseFormPage() {
         </div>
       </div>
 
-      {/* Form */}
       <CourseForm
         initialData={initialData}
         onSubmit={handleSubmit}
